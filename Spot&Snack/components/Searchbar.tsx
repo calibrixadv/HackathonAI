@@ -6,45 +6,53 @@ import { LocationItem } from './LocationItem';
 
 interface SearchbarProps {
     data: LocationItem[];
-    searchText: string;
-    onSearchChange: (text: string) => void;
     onLocationSelect: (location: LocationItem) => void;
+    value?: string;
+    onChangeText?: (text: string) => void;
 }
 
-const Searchbar: React.FC<SearchbarProps> = ({ data, searchText, onSearchChange, onLocationSelect }) => {
+const Searchbar: React.FC<SearchbarProps> = ({ data, onLocationSelect, value, onChangeText }) => {
+    const [searchText, setSearchText] = useState(value || '');
     const [filteredData, setFilteredData] = useState<LocationItem[]>([]);
+
     const cardColor = useThemeColor('card');
     const textColor = useThemeColor('text');
     const separatorColor = useThemeColor('separator');
     const scheme = useColorScheme() ?? 'light';
 
     useEffect(() => {
-        if (searchText.length > 0) {
-            const lowercased = searchText.toLowerCase();
-            const results = data.filter(item =>
-                item.name.toLowerCase().includes(lowercased) ||
-                item.address.toLowerCase().includes(lowercased)
+        if (value !== undefined && value !== searchText) {
+            setSearchText(value);
+            filterData(value);
+        }
+    }, [value]);
+
+    const filterData = (text: string) => {
+        setSearchText(text);
+        onChangeText?.(text);
+
+        if (text.length > 0) {
+            const lower = text.toLowerCase();
+            const results = data.filter(
+                item => item.name.toLowerCase().includes(lower) || item.address.toLowerCase().includes(lower)
             );
             setFilteredData(results);
         } else {
             setFilteredData([]);
         }
-    }, [searchText, data]);
+    };
 
     const handleSelect = (item: LocationItem) => {
         onLocationSelect(item);
-        onSearchChange(item.name);
+        setSearchText(item.name);
         setFilteredData([]);
+        onChangeText?.(item.name);
     };
 
-    const renderItem = ({ item, index }: { item: LocationItem; index: number }) => (
+    const renderItem = ({ item }: { item: LocationItem }) => (
         <TouchableOpacity
             key={item.id.toString()}
-            style={[styles.resultItem, {
-                backgroundColor: cardColor,
-                borderBottomColor: separatorColor,
-                borderBottomWidth: index === filteredData.length - 1 ? 0 : 1,
-            }]}
+            style={[styles.resultItem, { backgroundColor: cardColor, borderBottomColor: separatorColor }]}
             onPress={() => handleSelect(item)}
         >
             <Text style={[styles.resultName, { color: textColor }]}>{item.name}</Text>
@@ -55,12 +63,13 @@ const Searchbar: React.FC<SearchbarProps> = ({ data, searchText, onSearchChange,
     return (
         <View style={styles.container}>
             <TextInput
-                style={[styles.input, { color: Colors.primary }]}
-                placeholder="Caută locații sau adrese..."
+                style={[styles.input, { backgroundColor: cardColor, borderColor: Colors.primary, color: Colors.primary }]}
+                placeholder="Caută un spot sau un oraș..."
                 placeholderTextColor={scheme === 'dark' ? separatorColor : Colors.primary + '80'}
                 value={searchText}
-                onChangeText={onSearchChange}
+                onChangeText={filterData}
             />
+
             {filteredData.length > 0 && (
                 <View style={[styles.resultsContainer, { backgroundColor: cardColor, borderColor: separatorColor }]}>
                     <FlatList
@@ -76,11 +85,33 @@ const Searchbar: React.FC<SearchbarProps> = ({ data, searchText, onSearchChange,
 };
 
 const styles = StyleSheet.create({
-    container: { paddingHorizontal: 15,marginTop:40, zIndex: 10 },
-    input: { height: 50, borderRadius: 10, paddingHorizontal: 15, fontSize: 16, borderWidth: 1 },
-    resultsContainer: { maxHeight: 300, borderWidth: 1, borderRadius: 10, overflow: 'hidden' },
-    resultItem: { padding: 12 },
-    resultName: { fontWeight: 'bold', fontSize: 16 },
+    container: { paddingHorizontal: 15, marginTop: 40, zIndex: 10 },
+    input: {
+        height: 50,
+        borderRadius: 25,
+        paddingHorizontal: 15,
+        fontSize: 16,
+        borderWidth: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    resultsContainer: {
+        maxHeight: 300,
+        borderRadius: 15,
+        borderWidth: 1,
+        marginTop: 5,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5.46,
+        elevation: 8,
+    },
+    resultItem: { padding: 15 },
+    resultName: { fontSize: 16, fontWeight: 'bold' },
     resultAddress: { fontSize: 12, marginTop: 2 },
 });
 

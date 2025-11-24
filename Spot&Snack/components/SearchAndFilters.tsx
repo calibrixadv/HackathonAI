@@ -1,24 +1,35 @@
-import React, { useState } from 'react';
-import { View } from 'react-native';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
 import Searchbar from './Searchbar';
-import { LocationItem } from './LocationItem';
+import FilterChipsBar from './FilterChipsBar';
 
-interface SearchingFiltersProps {
-    data: LocationItem[];
-    onLocationSelect: (location: LocationItem) => void;
+interface SearchAndFiltersProps {
+    searchQuery: string;
+    onSearchChange: (text: string) => void;
+    filters: string[];
+    selectedFilter: string;
+    onFilterSelect: (filter: string) => void;
 }
 
-export default function SearchingFilters({ data, onLocationSelect }: SearchingFiltersProps) {
-    const [searchText, setSearchText] = useState('');
-
+export default function SearchAndFilters({
+                                             searchQuery,
+                                             onSearchChange,
+                                             filters,
+                                             selectedFilter,
+                                             onFilterSelect,
+                                         }: SearchAndFiltersProps) {
     return (
-        <View>
-            <Searchbar
-                data={data}
-                searchText={searchText}        // Aici pui valoarea actuală
-                onSearchChange={setSearchText} // Aici pui callback-ul de update
-                onLocationSelect={onLocationSelect}
+        <View style={styles.container}>
+            <Searchbar value={searchQuery} onChangeText={onSearchChange} />
+            <FilterChipsBar
+                filters={filters}
+                selectedFilter={selectedFilter}
+                onSelect={onFilterSelect}
             />
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    container: { paddingHorizontal: 15, marginTop: 10 },
+});

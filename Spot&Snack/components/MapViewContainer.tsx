@@ -1,17 +1,9 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import MapView, { Marker, Region } from 'react-native-maps';
 import { FontAwesome5 } from '@expo/vector-icons';
-import Colors from '../constants/Colors';
 import { LocationItem } from './LocationItem';
-
-// Import MapView și Marker doar pe mobile
-let MapView: any = View;
-let Marker: any = View;
-if (Platform.OS !== 'web') {
-    const Maps = require('react-native-maps');
-    MapView = Maps.default;
-    Marker = Maps.Marker;
-}
+import Colors from '../constants/Colors';
 
 interface MapViewContainerProps {
     locations: LocationItem[];
@@ -19,14 +11,18 @@ interface MapViewContainerProps {
     onSelectLocation: (location: LocationItem) => void;
 }
 
-const initialRegion = {
+const initialRegion: Region = {
     latitude: 44.4268,
     longitude: 26.1025,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
 };
 
-export default function MapViewContainer({ locations, selectedLocation, onSelectLocation }: MapViewContainerProps) {
+export default function MapViewContainer({
+                                             locations,
+                                             selectedLocation,
+                                             onSelectLocation,
+                                         }: MapViewContainerProps) {
     const currentRegion = useMemo(() => {
         if (selectedLocation) {
             return {
@@ -41,22 +37,18 @@ export default function MapViewContainer({ locations, selectedLocation, onSelect
 
     const getIconName = (loc: LocationItem) => {
         switch (loc.getPrimaryCategory()) {
-            case 'Cafea / Study': return 'coffee';
-            case 'Vegan / Healthy': return 'leaf';
-            case 'Fast-food / Burger': return 'hamburger';
-            case 'Mâncare tradițională': return 'utensils';
-            default: return 'map-marker';
+            case 'Cafea / Study':
+                return 'coffee';
+            case 'Vegan / Healthy':
+                return 'leaf';
+            case 'Fast-food / Burger':
+                return 'hamburger';
+            case 'Mâncare tradițională':
+                return 'utensils';
+            default:
+                return 'map-marker';
         }
     };
-
-    if (Platform.OS === 'web') {
-        // Placeholder pe web
-        return (
-            <View style={styles.webPlaceholder}>
-                <Text style={{ color: Colors.text }}>MapView nu este disponibil pe Web</Text>
-            </View>
-        );
-    }
 
     return (
         <MapView
@@ -69,7 +61,10 @@ export default function MapViewContainer({ locations, selectedLocation, onSelect
             {locations.map(loc => (
                 <Marker
                     key={loc.id.toString()}
-                    coordinate={{ latitude: loc.coordinates.lat, longitude: loc.coordinates.long }}
+                    coordinate={{
+                        latitude: loc.coordinates.lat,
+                        longitude: loc.coordinates.long,
+                    }}
                     onPress={() => onSelectLocation(loc)}
                 >
                     <View style={[styles.pin, { borderColor: loc.getPinColor() }]}>
@@ -96,13 +91,5 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 3,
         elevation: 5,
-    },
-    webPlaceholder: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: Colors.primary,
-        borderRadius: 12,
-        margin: 10,
     },
 });
