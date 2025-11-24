@@ -19,12 +19,10 @@ export class LocationItem {
         this.categories = data.categories || [];
     }
 
-    // Pentru icon pe hartă folosim prima categorie (dacă există)
     getPrimaryCategory() {
         return this.categories[0] || 'Other';
     }
 
-    // Pin color după rating
     getPinColor() {
         if (this.rating >= 4.6) return '#FFD700'; // galben
         if (this.rating >= 4.0) return '#8B2DD1'; // mov

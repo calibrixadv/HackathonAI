@@ -1,185 +1,141 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, useColorScheme, Dimensions, TouchableOpacity, ScrollView } from 'react-native';
 import MapViewContainer from '../../components/MapViewContainer';
 import Searchbar from '../../components/Searchbar';
 import { LocationItem } from '../../components/LocationItem';
 import locationsData from '../../constants/locatii.json';
 import Colors from '../../constants/Colors';
-import { useThemeColor } from '../../hooks/useThemeColor';
-import ListViewContainer from '../../components/ListViewContainer';
 
-const FILTER_CHIPS = [
-    "Toate",
-    "Cafea / Study",
-    "Mic dejun & Brunch",
-    "Mâncare tradițională",
-    "Pizza & Italian",
-    "Vegan / Healthy",
-    "Fast-food / Kebab",
-    "Burger & Street Food",
-    "Seafood / Pește",
-    "Bar / Pub & Social",
-    "Restaurant"
-];
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function ExploreScreen() {
     const scheme = useColorScheme() ?? 'light';
-    const backgroundColor = useThemeColor('background');
-    const textColor = useThemeColor('text');
+    const backgroundColor = scheme === 'dark' ? '#000' : '#fff';
+    const textColor = scheme === 'dark' ? '#fff' : '#000';
 
-    const locationsArray = locationsData.locations as any[];
-    const locations: LocationItem[] = locationsArray.map(item => new LocationItem(item));
-
+    const locations: LocationItem[] = (locationsData.locations || []).map(item => new LocationItem(item));
     const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [activeView, setActiveView] = useState<'map' | 'list'>('map');
+    const [searchText, setSearchText] = useState('');
     const [activeFilter, setActiveFilter] = useState('Toate');
+    const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
 
-    // Data pentru search, respectând filtrul activ
-    const searchData = useMemo(() => {
-        if (activeFilter === 'Toate') return locations;
-        return locations.filter(loc => loc.categories.includes(activeFilter));
-    }, [locations, activeFilter]);
+    const filters = [
+        "Toate",
+        "Cafea / Study",
+        "Mic dejun & Brunch",
+        "Mâncare tradițională",
+        "Pizza & Italian",
+        "Vegan / Healthy",
+        "Fast-food / Kebab",
+        "Burger & Street Food",
+        "Seafood / Pește",
+        "Bar / Pub & Social",
+        "Restaurant"
+    ];
 
-    // Filtrare după search + categorie pentru map/list
     const filteredLocations = useMemo(() => {
-        let data = searchData;
-
-        if (searchQuery) {
-            const lower = searchQuery.toLowerCase();
-            data = data.filter(
-                loc =>
-                    loc.name.toLowerCase().includes(lower) ||
-                    loc.address.toLowerCase().includes(lower) ||
-                    loc.categories.some(cat => cat.toLowerCase().includes(lower))
-            );
-        }
-
-        return data;
-    }, [searchData, searchQuery]);
+        return locations.filter(loc => {
+            const matchesFilter = activeFilter === 'Toate' || loc.categories.includes(activeFilter);
+            const matchesSearch = loc.name.toLowerCase().includes(searchText.toLowerCase()) ||
+                loc.address.toLowerCase().includes(searchText.toLowerCase());
+            return matchesFilter && matchesSearch;
+        });
+    }, [locations, searchText, activeFilter]);
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
-            <View style={styles.headerContainer}>
-                {/* Searchbar */}
-                <Searchbar
-                    data={searchData}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    onLocationSelect={setSelectedLocation}
-                />
+            {/* Searchbar */}
+            <Searchbar
+                data={filteredLocations}
+                searchText={searchText}
+                onSearchChange={setSearchText}
+                onLocationSelect={setSelectedLocation}
+            />
 
-                {/* Chips */}
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.chipContainer}
-                    contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 4 }}
+            {/* Filter chips */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+                {filters.map(f => (
+                    <TouchableOpacity
+                        key={f}
+                        style={[
+                            styles.filterChip,
+                            { backgroundColor: activeFilter === f ? Colors.accent : Colors.primary }
+                        ]}
+                        onPress={() => setActiveFilter(f)}
+                    >
+                        <Text style={{ color: activeFilter === f ? '#fff' : textColor, fontSize: 12 }}>{f}</Text>
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
+
+            {/* Map/List toggle */}
+            <View style={styles.toggleContainer}>
+                <TouchableOpacity
+                    style={[styles.toggleButton, viewMode === 'map' && { backgroundColor: Colors.accent }]}
+                    onPress={() => setViewMode('map')}
                 >
-                    {FILTER_CHIPS.map((chip) => (
-                        <TouchableOpacity
-                            key={chip}
-                            style={[
-                                styles.chip,
-                                activeFilter === chip ? styles.chipActive : styles.chipInactive,
-                            ]}
-                            onPress={() => setActiveFilter(chip)}
-                        >
-                            <Text style={activeFilter === chip ? styles.chipTextActive : styles.chipTextInactive}>
-                                {chip}
-                            </Text>
-                        </TouchableOpacity>
+                    <Text style={{ color: viewMode === 'map' ? '#fff' : Colors.accent }}>🗺 Hartă</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.toggleButton, viewMode === 'list' && { backgroundColor: Colors.accent }]}
+                    onPress={() => setViewMode('list')}
+                >
+                    <Text style={{ color: viewMode === 'list' ? '#fff' : Colors.accent }}>📋 Listă</Text>
+                </TouchableOpacity>
+            </View>
+
+            {viewMode === 'map' ? (
+                <MapViewContainer
+                    locations={filteredLocations}
+                    selectedLocation={selectedLocation}
+                    onSelectLocation={setSelectedLocation}
+                />
+            ) : (
+                <ScrollView style={{ flex: 1, marginTop: 8 }}>
+                    {filteredLocations.map(loc => (
+                        <View key={loc.id} style={styles.listCard}>
+                            <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{loc.name}</Text>
+                            <Text style={{ fontSize: 12, color: Colors.text }}>{loc.address}</Text>
+                        </View>
                     ))}
                 </ScrollView>
-
-                {/* Segment control */}
-                <View style={styles.segmentContainer}>
-                    <TouchableOpacity
-                        style={[styles.segmentButton, activeView === 'map' ? styles.segmentActive : styles.segmentInactive]}
-                        onPress={() => setActiveView('map')}
-                    >
-                        <Text style={activeView === 'map' ? styles.segmentTextActive : styles.segmentTextInactive}>🗺 Hartă</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.segmentButton, activeView === 'list' ? styles.segmentActive : styles.segmentInactive]}
-                        onPress={() => setActiveView('list')}
-                    >
-                        <Text style={activeView === 'list' ? styles.segmentTextActive : styles.segmentTextInactive}>📋 Listă</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            {/* Zona content (Map sau List) */}
-            <View style={styles.contentContainer}>
-                {activeView === 'map' ? (
-                    <MapViewContainer
-                        locations={filteredLocations}
-                        selectedLocation={selectedLocation}
-                        onSelectLocation={setSelectedLocation}
-                    />
-                ) : (
-                    <ListViewContainer locations={filteredLocations} onSelect={setSelectedLocation} />
-                )}
-            </View>
+            )}
         </View>
     );
-
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-
-    headerContainer: {
-        width: '100%',
-        paddingVertical: 4,   // mic padding de sus/jos
-        paddingBottom: 8,
-    },
-
-    contentContainer: {
-        flex: 1,  // ocupă tot restul spațiului
-    },
-
-    chipContainer: {
-        flexDirection: 'row',
-        marginTop: 4,
-    },
-    chip: {
+    filterScroll: { maxHeight: SCREEN_HEIGHT * 0.08, marginVertical: 4, paddingHorizontal: 10 },
+    filterChip: {
+        paddingHorizontal: 12,
         paddingVertical: 6,
-        paddingHorizontal: 16,
         borderRadius: 20,
-        marginRight: 10,
-        borderWidth: 1,
+        marginRight: 6,
+        minWidth: 60,
         justifyContent: 'center',
         alignItems: 'center',
-        alignSelf: 'flex-start',
-        flexShrink: 1,
     },
-    chipActive: {
-        backgroundColor: Colors.accent,
-        borderColor: Colors.accent,
-    },
-    chipInactive: {
-        backgroundColor: '#fff',
-        borderColor: Colors.accent,
-    },
-    chipTextActive: { color: '#fff', fontSize: 14, textAlign: 'center' },
-    chipTextInactive: { color: Colors.accent, fontSize: 14, textAlign: 'center' },
-
-    segmentContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginVertical: 4,
-        marginHorizontal: 20,
-        borderRadius: 25,
+    toggleContainer: { flexDirection: 'row', justifyContent: 'center', marginVertical: 4 },
+    toggleButton: {
+        flex: 1,
+        marginHorizontal: 6,
+        paddingVertical: 8,
         borderWidth: 1,
         borderColor: Colors.accent,
-        overflow: 'hidden',
+        borderRadius: 8,
+        alignItems: 'center',
     },
-    segmentButton: { flex: 1, paddingVertical: 8, alignItems: 'center' },
-    segmentActive: { backgroundColor: Colors.accent },
-    segmentInactive: { backgroundColor: '#fff' },
-    segmentTextActive: { color: '#fff', fontWeight: 'bold' },
-    segmentTextInactive: { color: Colors.accent, fontWeight: 'bold' },
-
-    footerText: { padding: 10, textAlign: 'center' },
+    listCard: {
+        padding: 12,
+        marginHorizontal: 15,
+        marginVertical: 6,
+        backgroundColor: Colors.primary,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOpacity: 0.1,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
+        elevation: 2,
+    },
 });
