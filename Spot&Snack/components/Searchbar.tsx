@@ -1,75 +1,83 @@
-// src/components/Searchbar.tsx
-import React, { useEffect, useState } from 'react';
-import { View, TextInput, Text, StyleSheet, useColorScheme } from 'react-native';
-import { ScrollView, RectButton } from 'react-native-gesture-handler';
+import React, { useState, useEffect } from 'react';
+import { View, TextInput, FlatList, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
 import Colors from '../constants/Colors';
 import { useThemeColor } from '../hooks/useThemeColor';
-
-export interface Coordinates { lat: number; long: number; }
-export interface LocationItem { id: string; name: string; address: string; coordinates: Coordinates; }
+import { LocationItem } from './LocationItem';
 
 interface SearchbarProps {
     data: LocationItem[];
     onLocationSelect: (location: LocationItem) => void;
-    onOpenChange?: (open: boolean) => void;
+    value?: string;
+    onChangeText?: (text: string) => void;
 }
 
-const Searchbar: React.FC<SearchbarProps> = ({ data, onLocationSelect, onOpenChange }) => {
-    const [searchText, setSearchText] = useState('');
+const Searchbar: React.FC<SearchbarProps> = ({ data, onLocationSelect, value, onChangeText }) => {
+    const [searchText, setSearchText] = useState(value || '');
     const [filteredData, setFilteredData] = useState<LocationItem[]>([]);
+
     const cardColor = useThemeColor('card');
     const textColor = useThemeColor('text');
     const separatorColor = useThemeColor('separator');
     const scheme = useColorScheme() ?? 'light';
 
-    useEffect(() => { if (onOpenChange) onOpenChange(filteredData.length > 0); }, [filteredData.length, onOpenChange]);
+    useEffect(() => {
+        if (value !== undefined && value !== searchText) {
+            setSearchText(value);
+            filterData(value);
+        }
+    }, [value]);
 
-    const handleSearch = (text: string) => {
+    const filterData = (text: string) => {
         setSearchText(text);
-        if (text.length > 0 && Array.isArray(data)) {
-            const q = text.toLowerCase();
-            const res = data.filter(it => it.name.toLowerCase().includes(q) || it.address.toLowerCase().includes(q));
-            setFilteredData(res);
-        } else setFilteredData([]);
+        onChangeText?.(text);
+
+        if (text.length > 0) {
+            const lower = text.toLowerCase();
+            const results = data.filter(
+                item => item.name.toLowerCase().includes(lower) || item.address.toLowerCase().includes(lower)
+            );
+            setFilteredData(results);
+        } else {
+            setFilteredData([]);
+        }
     };
 
-    const handleSelect = (it: LocationItem) => {
-        onLocationSelect(it);
-        setSearchText(it.name);
+    const handleSelect = (item: LocationItem) => {
+        onLocationSelect(item);
+        setSearchText(item.name);
         setFilteredData([]);
+        onChangeText?.(item.name);
     };
+
+    const renderItem = ({ item }: { item: LocationItem }) => (
+        <TouchableOpacity
+            key={item.id.toString()}
+            style={[styles.resultItem, { backgroundColor: cardColor, borderBottomColor: separatorColor }]}
+            onPress={() => handleSelect(item)}
+        >
+            <Text style={[styles.resultName, { color: textColor }]}>{item.name}</Text>
+            <Text style={[styles.resultAddress, { color: separatorColor }]}>{item.address}</Text>
+        </TouchableOpacity>
+    );
 
     return (
-        <View style={styles.container} pointerEvents="box-none">
+        <View style={styles.container}>
             <TextInput
                 style={[styles.input, { backgroundColor: cardColor, borderColor: Colors.primary, color: Colors.primary }]}
-                placeholder="Caută locații sau adrese..."
+                placeholder="Caută un spot sau un oraș..."
                 placeholderTextColor={scheme === 'dark' ? separatorColor : Colors.primary + '80'}
                 value={searchText}
-                onChangeText={handleSearch}
+                onChangeText={filterData}
             />
 
             {filteredData.length > 0 && (
                 <View style={[styles.resultsContainer, { backgroundColor: cardColor, borderColor: separatorColor }]}>
-                    <ScrollView
-                        style={{ maxHeight: 300 }}
-                        contentContainerStyle={{ paddingVertical: 4 }}
-                        nestedScrollEnabled={true}
+                    <FlatList
+                        data={filteredData}
+                        renderItem={renderItem}
+                        keyExtractor={(item) => item.id.toString()}
                         keyboardShouldPersistTaps="handled"
-                        showsVerticalScrollIndicator
-                    >
-                        {filteredData.map((it, idx) => (
-                            <RectButton
-                                key={it.id ?? idx}
-                                onPress={() => handleSelect(it)}
-                                style={[styles.resultItem, { backgroundColor: cardColor, borderBottomColor: separatorColor, borderBottomWidth: idx === filteredData.length - 1 ? 0 : 1 }]}
-                                rippleColor="rgba(0,0,0,0.04)"
-                            >
-                                <Text style={[styles.resultName, { color: textColor }]}>{it.name}</Text>
-                                <Text style={[styles.resultAddress, { color: separatorColor }]}>{it.address}</Text>
-                            </RectButton>
-                        ))}
-                    </ScrollView>
+                    />
                 </View>
             )}
         </View>
@@ -77,17 +85,32 @@ const Searchbar: React.FC<SearchbarProps> = ({ data, onLocationSelect, onOpenCha
 };
 
 const styles = StyleSheet.create({
-    container: {
+    container: { paddingHorizontal: 15, marginTop: 10, zIndex: 10 },
+    input: {
+        height: 50,
+        borderRadius: 25,
         paddingHorizontal: 15,
-        paddingTop: 30, // crește de la 10 → 30 pentru a coborî searchbar-ul
-        zIndex: 9999,
-        elevation: 30,
-        position: 'absolute',
-        width: '100%',
+        fontSize: 16,
+        borderWidth: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
-    input: { height: 50, borderRadius: 10, paddingHorizontal: 15, fontSize: 16, borderWidth: 1, elevation: 6 },
-    resultsContainer: { position: 'absolute', top: 70, left: 15, right: 15, maxHeight: 300, borderRadius: 10, borderWidth: 1, elevation: 40, zIndex: 99999 },
-    resultItem: { padding: 15, flexDirection: 'column' },
+    resultsContainer: {
+        maxHeight: 300,
+        borderRadius: 15,
+        borderWidth: 1,
+        marginTop: 5,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 5.46,
+        elevation: 8,
+    },
+    resultItem: { padding: 15 },
     resultName: { fontSize: 16, fontWeight: 'bold' },
     resultAddress: { fontSize: 12, marginTop: 2 },
 });
