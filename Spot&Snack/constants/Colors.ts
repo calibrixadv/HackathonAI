@@ -21,6 +21,7 @@ const Colors= {
     primary: '#7C3AED',      // Mov Intens (Primary)
     accent: '#FACC15',       // Galben Cartoon (Accent)
 
+    text:'#7C3AED',
     // Culori neutre / fundal
     backgroundLight: '#FBFBF5', // Alb cald (Off-White)
     textDark: '#1E1E1E',       // Gri închis, aproape negru

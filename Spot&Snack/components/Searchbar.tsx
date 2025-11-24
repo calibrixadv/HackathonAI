@@ -85,7 +85,7 @@ const Searchbar: React.FC<SearchbarProps> = ({ data, onLocationSelect, value, on
 };
 
 const styles = StyleSheet.create({
-    container: { paddingHorizontal: 15, marginTop: 10, zIndex: 10 },
+    container: { paddingHorizontal: 15, marginTop: 40, zIndex: 10 },
     input: {
         height: 50,
         borderRadius: 25,

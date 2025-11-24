@@ -1,32 +1,49 @@
-// app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
-import React from 'react';
-import { Ionicons } from '@expo/vector-icons'; // Exemplu de pachet de iconițe
+import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
+import { useColorScheme } from '@/components/useColorScheme';
+import ChatButton from '@/components/ChatButton';
+import Colors from '@/constants/Colors';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function TabLayout() {
-    const primaryColor = '#7C3AED'; // Mov Intens
+export default function TabsLayout() {
+    const colorScheme = useColorScheme();
 
     return (
-        <Tabs
-            screenOptions={{
-                tabBarActiveTintColor: primaryColor,
-                headerShown: false, // Ascunde titlul de sus, opțional
-            }}
-        >
-            <Tabs.Screen
-                name="explore" // Numele trebuie să se potrivească cu explore.tsx
-                options={{
-                    title: 'Explorare',
-                    tabBarIcon: ({ color }) => <Ionicons name="compass" size={24} color={color} />,
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Tabs
+                screenOptions={{
+                    tabBarActiveTintColor: Colors.accent,
+                    tabBarInactiveTintColor: Colors.text,
+                    headerShown: false,
+                    tabBarStyle: {
+                        height: 70,
+                        paddingBottom: 10,
+                        paddingTop: 5,
+                    },
                 }}
-            />
-            <Tabs.Screen
-                name="profile" // Numele trebuie să se potrivească cu profile.tsx
-                options={{
-                    title: 'Profil',
-                    tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
-                }}
-            />
-        </Tabs>
+            >
+                <Tabs.Screen
+                    name="explore"
+                    options={{
+                        title: 'Explore',
+                        tabBarIcon: ({ color, size }) => (
+                            <Ionicons name="map-outline" size={size} color={color} />
+                        ),
+                    }}
+                />
+                <Tabs.Screen
+                    name="profile"
+                    options={{
+                        title: 'Profil',
+                        tabBarIcon: ({ color, size }) => (
+                            <Ionicons name="person-outline" size={size} color={color} />
+                        ),
+                    }}
+                />
+            </Tabs>
+
+            {/* Chat button plutitor peste toate ecranele */}
+            <ChatButton />
+        </ThemeProvider>
     );
 }

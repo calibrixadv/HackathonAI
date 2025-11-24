@@ -60,10 +60,10 @@ export default function ExploreScreen() {
 
     return (
         <View style={[styles.container, { backgroundColor }]}>
-            {/* Zona superioară minimă necesară */}
             <View style={styles.headerContainer}>
+                {/* Searchbar */}
                 <Searchbar
-                    data={searchData}   // doar locațiile din filtrul selectat
+                    data={searchData}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     onLocationSelect={setSelectedLocation}
@@ -121,12 +121,9 @@ export default function ExploreScreen() {
                     <ListViewContainer locations={filteredLocations} onSelect={setSelectedLocation} />
                 )}
             </View>
-
-            <Text style={[styles.footerText, { backgroundColor, color: textColor }]}>
-                Modul curent: {scheme === 'light' ? 'LUMINOS' : 'ÎNTUNECAT'} ({activeView === 'map' ? 'Hartă' : 'Listă'})
-            </Text>
         </View>
     );
+
 }
 
 const styles = StyleSheet.create({
