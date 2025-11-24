@@ -25,6 +25,7 @@ const Colors= {
     // Culori neutre / fundal
     backgroundLight: '#FBFBF5', // Alb cald (Off-White)
     textDark: '#1E1E1E',       // Gri închis, aproape negru
+    card:'#FBFBF5',
 
     // Culori adiționale (pentru coerență)
     success: '#34C759',
