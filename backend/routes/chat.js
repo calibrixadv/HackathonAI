@@ -1,55 +1,122 @@
-const express = require("express");
+// backend/routes/libs/chatRouter.js  (sau routes/chat.js la tine)
+const express = require('express');
+const { spawn } = require('child_process');
+const path = require('path');
+
 const router = express.Router();
 
-// Placeholder pentru funcțiile din chatbot
-const { loadConfig, loadPlaces, answerMessage, generateVibeForPlace } = require("../chatbot");
+// rădăcina backend-ului (două nivele mai sus față de routes/libs)
+const backendRoot = path.join(__dirname,  '..');
 
-const config = loadConfig();
-const places = loadPlaces(config.locations_path);
+// Python din venv (macOS / Linux)
+// pe Windows: const pythonBin = path.join(backendRoot, 'venv', 'Scripts', 'python.exe');
+const pythonBin = path.join(backendRoot,'libs', 'venv', 'bin', 'python');
+const chatBotPath = path.join(backendRoot, 'chatBot.py');
 
-// Endpoint chat simplificat (fără JWT)
-router.post("/", async (req, res) => {
-    try {
-        const { message, history = [], option, placeIndex } = req.body;
+// helper comun
+function runChatBot(payload, res) {
+    let responded = false;
 
-        if (!option || ![1, 2, 3].includes(option)) {
-            return res.status(400).json({ error: "option must be 1, 2, or 3" });
+    const py = spawn(pythonBin, [chatBotPath], {
+        cwd: backendRoot,
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    py.stdout.on('data', (data) => {
+        stdout += data.toString();
+    });
+
+    py.stderr.on('data', (data) => {
+        stderr += data.toString();
+    });
+
+    py.on('error', (err) => {
+        console.error('Failed to start chatBot.py:', err);
+
+        if (responded) return;
+        responded = true;
+
+        return res.status(500).json({
+            error: 'python_spawn_failed',
+            details: err.message,
+        });
+    });
+
+    py.on('close', (code) => {
+        console.log('chatBot.py exit code:', code);
+        if (stderr) {
+            console.error('stderr:', stderr);
         }
 
-        // 1 = list first N places
-        if (option === 1) {
-            const count = Math.min(placeIndex || 5, places.length);
-            const list = places.slice(0, count).map((p, idx) => ({
-                index: idx + 1,
-                name: p.name,
-                address: p.address,
-                rating: p.rating,
-            }));
-            return res.json({ option: 1, data: list });
+        if (responded) return;
+        // de aici în jos sigur nu am trimis încă răspuns
+
+        if (code !== 0 && !stdout) {
+            responded = true;
+            return res.status(500).json({
+                error: 'chatbot_failed',
+                exitCode: code,
+                stderr,
+            });
         }
 
-        // 2 = generate vibe for a place
-        if (option === 2) {
-            if (!placeIndex || placeIndex < 1 || placeIndex > places.length) {
-                return res.status(400).json({ error: "invalid placeIndex" });
-            }
-            const place = places[placeIndex - 1];
-            const vibe = await generateVibeForPlace(config.client, config.model, place);
-            return res.json({ option: 2, place: place.name, vibe });
+        try {
+            const json = JSON.parse(stdout);
+            responded = true;
+            return res.json(json);
+        } catch (err) {
+            console.error('Invalid JSON from chatBot.py:', stdout);
+            responded = true;
+            return res.status(500).json({
+                error: 'invalid_json_from_python',
+                raw: stdout,
+            });
         }
+    });
 
-        // 3 = full chat
-        if (option === 3) {
-            if (!message) return res.status(400).json({ error: "message is required" });
+    py.stdin.write(JSON.stringify(payload));
+    py.stdin.end();
+}
 
-            const result = await answerMessage(config.client, config.model, places, history, message);
-            return res.json({ option: 3, reply: result.reply, history: result.history });
-        }
+// ----------------- /api/chat -> mode: "chat" -----------------
 
-    } catch (err) {
-        console.error("[CHAT ERROR]", err);
-        res.status(500).json({ error: err.message });
+router.post('/chat', (req, res) => {
+    const { message, history = [] } = req.body || {};
+
+    if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'message is required' });
     }
+
+    const payload = {
+        mode: 'chat',
+        message,
+        history,
+    };
+
+    runChatBot(payload, res);
+});
+
+// ----------------- /api/vibe -> mode: "vibe" -----------------
+
+router.post('/vibe', (req, res) => {
+    let { placeIndex, place_index } = req.body || {};
+    const idx = placeIndex ?? place_index;
+
+    if (typeof idx !== 'number') {
+        return res.status(400).json({
+            error: 'place_index_required',
+            details: "Trimite 'placeIndex' sau 'place_index' ca număr (1-based).",
+        });
+    }
+
+    const payload = {
+        mode: 'vibe',
+        place_index: idx,
+    };
+
+    runChatBot(payload, res);
 });
 
 module.exports = router;
