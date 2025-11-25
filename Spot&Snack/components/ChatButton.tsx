@@ -9,6 +9,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../constants/Colors';
@@ -16,15 +17,51 @@ import Colors from '../constants/Colors';
 export default function ChatButton() {
     const [visible, setVisible] = useState(false);
     const [message, setMessage] = useState('');
+    const [history, setHistory] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    const sendMessage = async () => {
+        if (!message.trim()) return;
+
+        const userMsg = { role: 'user', content: message };
+        setHistory((prev) => [...prev, userMsg]);
+        setLoading(true);
+
+        try {
+            const res = await fetch("https://hackathonai-1.onrender.com/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message,
+                    history
+                })
+            });
+
+            const data = await res.json();
+
+            const botMsg = { role: 'assistant', content: data.reply ?? "Eroare server." };
+
+            setHistory((prev) => [...prev, botMsg]);
+
+        } catch (err) {
+            setHistory((prev) => [
+                ...prev,
+                { role: "assistant", content: "Eroare la server." }
+            ]);
+        }
+
+        setLoading(false);
+        setMessage('');
+    };
 
     return (
         <>
-            {/* Chat Bubble Icon */}
+            {/* Chat Icon */}
             <TouchableOpacity style={styles.chatIcon} onPress={() => setVisible(true)}>
                 <Ionicons name="chatbubble-ellipses" size={28} color="#fff" />
             </TouchableOpacity>
 
-            {/* Modal chat full-screen */}
+            {/* Modal Chat */}
             <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={() => setVisible(false)}>
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -39,9 +76,23 @@ export default function ChatButton() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Scroll pentru mesaje */}
+                        {/* Messages Scroll */}
                         <ScrollView style={styles.messagesContainer}>
-                            <Text style={styles.message}>Bun venit! Scrie mesajul tău mai jos.</Text>
+                            {history.map((msg, idx) => (
+                                <Text
+                                    key={idx}
+                                    style={[
+                                        styles.message,
+                                        msg.role === "user" ? styles.userMsg : styles.botMsg
+                                    ]}
+                                >
+                                    {msg.content}
+                                </Text>
+                            ))}
+
+                            {loading && (
+                                <ActivityIndicator size="small" color={Colors.accent} style={{ marginTop: 10 }} />
+                            )}
                         </ScrollView>
 
                         {/* Input */}
@@ -53,15 +104,8 @@ export default function ChatButton() {
                             onChangeText={setMessage}
                         />
 
-                        {/* Trimite */}
-                        <TouchableOpacity
-                            style={styles.sendButton}
-                            onPress={() => {
-                                console.log('Mesaj trimis:', message);
-                                setMessage('');
-                                setVisible(false);
-                            }}
-                        >
+                        {/* Send */}
+                        <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
                             <Text style={styles.sendText}>Trimite</Text>
                         </TouchableOpacity>
                     </View>
@@ -107,7 +151,22 @@ const styles = StyleSheet.create({
     },
     title: { fontSize: 18, fontWeight: 'bold', color: Colors.text },
     messagesContainer: { flex: 1, marginBottom: 12 },
-    message: { marginVertical: 4, fontSize: 14, color: Colors.text },
+    message: {
+        marginVertical: 6,
+        padding: 8,
+        borderRadius: 6,
+        fontSize: 14,
+    },
+    userMsg: {
+        alignSelf: 'flex-end',
+        backgroundColor: Colors.accent,
+        color: '#fff',
+    },
+    botMsg: {
+        alignSelf: 'flex-start',
+        backgroundColor: '#eaeaea',
+        color: Colors.text,
+    },
     input: {
         borderWidth: 1,
         borderColor: '#ccc',
@@ -126,4 +185,3 @@ const styles = StyleSheet.create({
     },
     sendText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });
-
