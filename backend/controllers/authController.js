@@ -21,17 +21,19 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
+
         const user = await User.findOne({ email });
-        if (!user) return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        if (!user) return res.status(401).json({ success: false, error: 'User not found' });
 
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(401).json({ success: false, error: 'Invalid password' });
 
-        const token = generateToken(user._id);
-        res.cookie('token', token, { httpOnly: true, maxAge: 3600000 });
-        res.json({ success: true, user: { id: user._id, username: user.username, email } });
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+        res.json({ success: true, token, user: { id: user._id, username: user.username, email: user.email } });
     } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+        console.error(err);
+        res.status(500).json({ success: false, error: 'Server error' });
     }
 };
 
