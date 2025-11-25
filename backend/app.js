@@ -1,15 +1,16 @@
-const express = require('express');
-const mongoose = require('mongoose');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+
+import authRoutes from './routes/auth.js';
+import chatRoutes from './routes/chat.js';
 
 const app = express();
-app.use(express.json());
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
+app.use(cors());
+app.use(bodyParser.json());
 
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.error(err));
+app.use('/api/auth', authRoutes);   // login/register
+app.use('/api', chatRoutes);        // chat endpoint (JWT protected)
 
-module.exports = app;
+export default app;
