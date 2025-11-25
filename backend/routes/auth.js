@@ -7,7 +7,8 @@ const User = require('../models/User');
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
-        const user = new User({ username, email, password });
+        const hashed = await bcrypt.hash(password, 10);
+        const user = new User({ username, email, hashed });
         await user.save();
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
@@ -24,8 +25,9 @@ router.post('/login', async (req, res) => {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
         if (!user) return res.status(400).json({ success: false, error: 'Invalid credentials' });
+        const hashed = await bcrypt.hash(password, 10);
 
-        const isMatch = await user.comparePassword(password);
+        const isMatch = await user.comparePassword(hashed);
         if (!isMatch) return res.status(400).json({ success: false, error: 'Invalid credentials' });
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
