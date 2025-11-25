@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from groq import Groq
 
-from ../Chat_Bot_Groq_final_v2 import (  # sau Chat_Bot_Groq_final dacă așa se numește la tine
+from Chat_Bot_Groq_final_v2 import (  # sau Chat_Bot_Groq_final dacă așa se numește la tine
     load_config,
     load_places,
     answer_message,
