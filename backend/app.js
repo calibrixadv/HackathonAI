@@ -1,21 +1,15 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const authRoutes = require('./routes/auth');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+app.use(express.json());
 
-// Middleware
-app.use(bodyParser.json());
+app.use('/api/auth', require('./routes/auth'));
 
-// Routes
-app.use('/api/auth', authRoutes);
-
-mongoose.connect(process.env.MONGO_URI).then(() => {
-    console.log('MongoDB connected');
-    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-}).catch(err => console.error(err));
-
-module.exports=app;
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => {
+        console.log('MongoDB connected');
+        app.listen(process.env.PORT || 4000, () => console.log(`Server running on port ${process.env.PORT || 4000}`));
+    })
+    .catch(err => console.error(err));
