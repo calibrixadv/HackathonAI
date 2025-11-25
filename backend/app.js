@@ -12,5 +12,7 @@ app.use(bodyParser.json());
 
 app.use('/api/auth', authRoutes);   // login/register
 app.use('/api', chatRoutes);        // chat endpoint (JWT protected)
-
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log("MongoDB connected"))
+    .catch((err) => console.error("MongoDB connection error:", err));
 export default app;
