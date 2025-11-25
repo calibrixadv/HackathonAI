@@ -1,28 +1,23 @@
+require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
-require('dotenv').config();
-
 const authRoutes = require('./routes/auth');
 
 const app = express();
+const PORT = process.env.PORT || 4000;
 
 // Middleware
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
-app.use(cookieParser());
+app.use(express.json());           // parse JSON body
+app.use(cookieParser());           // parse cookies
 
 // Routes
 app.use('/api/auth', authRoutes);
 
-app.get('/', (req, res) => {
-    res.send('Server is running!');
-});
-
-// Connect to MongoDB
+// MongoDB connect
 mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('MongoDB connected'))
-    .catch(err => console.error('MongoDB connection error:', err));
+    .catch(err => console.error(err));
 
-module.exports = app;
+// Start server
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
