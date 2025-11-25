@@ -161,7 +161,5 @@ npx expo start
 
 ---
 
-## Licență
 
-Spot&Snack este licențiat sub [MIT License](LICENSE).
 
