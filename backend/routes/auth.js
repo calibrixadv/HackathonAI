@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Folosește un secret în .env: JWT_SECRET=supersecret123
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // REGISTER
