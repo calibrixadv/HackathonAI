@@ -5,11 +5,11 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 
+// Routes
 app.use('/api/auth', require('./routes/auth'));
 
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log('MongoDB connected');
-        app.listen(process.env.PORT || 4000, () => console.log(`Server running on port ${process.env.PORT || 4000}`));
-    })
+    .then(() => console.log('MongoDB connected'))
     .catch(err => console.error(err));
+
+module.exports = app;
